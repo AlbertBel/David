@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- outer hex badge -->
+  <path
+    d="M128 20
+       L195 58
+       L195 136
+       L128 224
+       L61 136
+       L61 58
+       Z"
+    stroke="#17B8FF"
+    stroke-width="8"
+    stroke-linejoin="round"
+    filter="url(#glow)"
+  />
+
+  <!-- inner emblem -->
+  <path
+    d="M97 82
+       L117 104
+       L128 88
+       L139 104
+       L159 82
+       L153 123
+       L128 149
+       L103 123
+       Z"
+    stroke="#17B8FF"
+    stroke-width="8"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    filter="url(#glow)"
+  />
+
+  <path
+    d="M117 104
+       L111 132
+       L128 149
+       L145 132
+       L139 104"
+    stroke="#17B8FF"
+    stroke-width="8"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    filter="url(#glow)"
+  />
+
+  <path
+    d="M111 132
+       L128 121
+       L145 132"
+    stroke="#17B8FF"
+    stroke-width="8"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    filter="url(#glow)"
+  />
+</svg>

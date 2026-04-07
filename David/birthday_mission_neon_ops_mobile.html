@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Birthday Mission — Neon Ops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050a0f;
+      --surface: rgba(8, 16, 24, 0.92);
+      --border: rgba(0,240,255,0.06);
+      --border-hi: rgba(0,240,255,0.2);
+      --text: #e0f0f8;
+      --text-dim: rgba(180,220,240,0.5);
+      --text-mid: rgba(180,220,240,0.72);
+      --accent: #00e5ff;
+      --accent-glow: rgba(0,229,255,0.35);
+      --accent-soft: rgba(0,229,255,0.08);
+      --gold: #f0c040;
+      --gold-glow: rgba(240,192,64,0.25);
+      --gold-soft: rgba(240,192,64,0.08);
+      --success: #3ddc84;
+      --success-glow: rgba(61,220,132,0.2);
+      --danger: #ff4d6a;
+      --cyan-dim: rgba(0,229,255,0.4);
+      --heading: 'Orbitron', sans-serif;
+      --body: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: var(--body); color: var(--text); background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,60,80,0.4), transparent),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0,40,60,0.25), transparent),
+        radial-gradient(ellipse 40% 40% at 10% 80%, rgba(0,30,50,0.2), transparent);
+    }
+    body::after {
+      content: ""; position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 20%, transparent 80%);
+    }
+    .scanlines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    }
+    /* ── HUD ELEMENTS ── */
+    .hud-corner { position: absolute; width: 20px; height: 20px; }
+    .hud-corner--tl { top: 0; left: 0; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .hud-corner--tr { top: 0; right: 0; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+    .hud-corner--bl { bottom: 0; left: 0; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .hud-corner--br { bottom: 0; right: 0; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+    .hud-label {
+      font-family: var(--mono); font-size: 8px; font-weight: 700;
+      letter-spacing: 0.25em; text-transform: uppercase; color: var(--cyan-dim);
+    }
+    .hud-value {
+      font-family: var(--heading); font-size: 13px; font-weight: 900;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .hud-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+    }
+    .hud-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      animation: hudPulse 2s ease-in-out infinite;
+    }
+    @keyframes hudPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes hudSweep {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .hud-sweep {
+      background: linear-gradient(90deg, transparent 40%, rgba(0,229,255,0.06) 50%, transparent 60%);
+      background-size: 200% 100%;
+      animation: hudSweep 4s ease-in-out infinite;
+    }
+    @keyframes scanCardIn {
+      0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+        filter: blur(1px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+    .scan-card-in {
+      animation: scanCardIn 360ms cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .scan-reveal {
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(1px);
+      pointer-events: none;
+    }
+    .scan-reveal.show {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+      pointer-events: auto;
+      transition: opacity 320ms ease, transform 320ms ease, filter 320ms ease;
+    }
+    .hud-sweep-once {
+      animation: hudSweep 950ms ease-out 1;
+      opacity: 0.65;
+      transition: opacity 300ms ease;
+    }
+    @keyframes sensorIntroPulse {
+      0% {
+        transform: scale(0.94);
+        opacity: 0.7;
+        filter: drop-shadow(0 0 0 rgba(0,229,255,0));
+      }
+      70% {
+        transform: scale(1.02);
+        opacity: 1;
+        filter: drop-shadow(0 0 16px rgba(0,229,255,0.25));
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+        filter: drop-shadow(0 0 0 rgba(0,229,255,0));
+      }
+    }
+    .scan-sensor-intro {
+      animation: sensorIntroPulse 420ms ease-out 1;
+    }
+    #particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .app {
+      position: relative; z-index: 1; width: 100%; max-width: 480px;
+      height: 100vh; max-height: 100dvh;
+      overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+    }
+    .app::-webkit-scrollbar { display: none; }
+    .screen {
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column; justify-content: flex-start;
+      padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+      opacity: 0; transform: translateY(12px);
+      animation: screenIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .screen.center { justify-content: center; }
+    .screen-header {
+      position: sticky; top: 0; z-index: 2;
+      padding-top: max(12px, env(safe-area-inset-top));
+      padding-bottom: 12px;
+      background: linear-gradient(to bottom, var(--bg) 70%, transparent);
+    }
+    .screen-footer {
+      margin-top: auto;
+      padding-top: 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    @keyframes screenIn { to { opacity: 1; transform: translateY(0); } }
+    .screen-exit { animation: screenOut 0.3s cubic-bezier(0.55,0,1,0.45) forwards; }
+    @keyframes screenOut { to { opacity: 0; transform: translateY(-10px) scale(0.98); } }
+
+    @keyframes flipIn { 
+      0% { transform: perspective(800px) rotateY(0deg); }
+      100% { transform: perspective(800px) rotateY(180deg); }
+    }
+    @keyframes flipOut { 
+      0% { transform: perspective(800px) rotateY(180deg); }
+      100% { transform: perspective(800px) rotateY(0deg); }
+    }
+    .flip-container {
+      perspective: 800px; width: 100%; cursor: pointer;
+    }
+    .flip-inner {
+      position: relative; width: 100%; transition: transform 0.6s ease;
+      transform-style: preserve-3d;
+    }
+    .flip-inner.flipped { transform: rotateY(180deg); }
+    .flip-front, .flip-back {
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      width: 100%; border-radius: 16px; overflow: hidden;
+    }
+    .flip-back {
+      position: absolute; inset: 0;
+      transform: rotateY(180deg);
+    }
+    .flip-hint {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,229,255,0.38);
+      background: radial-gradient(circle at 35% 30%, rgba(0,229,255,0.2), rgba(0,229,255,0.06) 55%, rgba(0,229,255,0.02));
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 18px rgba(0,229,255,0.25), inset 0 0 14px rgba(0,229,255,0.1);
+      animation: flipHintPulse 1.8s ease-in-out infinite;
+      pointer-events: auto;
+    }
+    .flip-hint svg {
+      width: 20px;
+      height: 20px;
+      filter: drop-shadow(0 0 8px rgba(0,229,255,0.45));
+      animation: flipHintNudge 1.8s ease-in-out infinite;
+    }
+    .flip-hint img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(0,229,255,0.5));
+      animation: flipHintNudge 1.8s ease-in-out infinite;
+    }
+    @keyframes flipHintPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 18px rgba(0,229,255,0.22), inset 0 0 14px rgba(0,229,255,0.08); }
+      50% { transform: scale(1.08); box-shadow: 0 0 26px rgba(0,229,255,0.36), inset 0 0 18px rgba(0,229,255,0.14); }
+    }
+    @keyframes flipHintNudge {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(8deg); }
+      75% { transform: rotate(-8deg); }
+    }
+
+    .eyebrow {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent); opacity: 0.85;
+    }
+    .eyebrow.gold { color: var(--gold); }
+    h1, h2 {
+      font-family: var(--heading); font-weight: 900; text-transform: uppercase;
+      line-height: 1.05; letter-spacing: -0.02em;
+    }
+    h1 { font-size: clamp(28px, 7vw, 38px); margin-top: 12px; }
+    h2 { font-size: clamp(22px, 5.5vw, 30px); margin-top: 10px; }
+    .subtitle { color: var(--text-mid); font-size: 14px; line-height: 1.6; margin-top: 12px; }
+    .em { color: var(--accent); }
+    .em-gold { color: var(--gold); }
+    .em-success { color: var(--success); }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+    .tag {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 6px 10px; border-radius: 6px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text-dim);
+      transition: all 0.3s ease;
+    }
+    .tag.active { border-color: var(--border-hi); color: var(--accent); background: var(--accent-soft); }
+
+    .card {
+      margin-top: 20px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 16px;
+      overflow: hidden; backdrop-filter: blur(12px);
+    }
+    .card-header {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .card-body { padding: 20px; }
+
+    .progress-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 16px; }
+    .progress-fill {
+      height: 100%; width: 0%; background: var(--accent); border-radius: 2px;
+      box-shadow: 0 0 12px var(--accent-glow); transition: width 0.3s ease;
+    }
+    .progress-meta {
+      display: flex; justify-content: space-between; margin-top: 8px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .field-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+    }
+
+    /* ── BIO AVATAR ── */
+    .bio-avatar {
+      width: 96px; height: 96px; border-radius: 50%; margin: 20px auto 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,229,255,0.04); border: 2px solid rgba(0,229,255,0.12);
+      transition: all 0.5s ease;
+    }
+    .bio-avatar svg { width: 44px; height: 44px; opacity: 0.3; transition: opacity 0.5s; }
+    .bio-avatar.confirmed {
+      border-color: rgba(61,220,132,0.4); background: rgba(61,220,132,0.06);
+      animation: avatarPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .bio-avatar.confirmed svg { opacity: 0.7; }
+    @keyframes avatarPop { from { transform: scale(0.9); } to { transform: scale(1); } }
+
+    /* ── SENSOR ── */
+    .sensor-area { margin-top: 32px; text-align: center; }
+    .sensor-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto; }
+    .scan-focus-bg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 380px;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 1;
+      background: radial-gradient(circle at center, rgba(0,229,255,0.09) 0 12%, transparent 13%);
+    }
+    .scan-focus-bg::before,
+    .scan-focus-bg::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(0,229,255,0.42);
+      box-shadow: 0 0 26px rgba(0,229,255,0.22);
+      transform: scale(0.32);
+      opacity: 0;
+      animation: scanWavePulse 2.4s ease-out infinite;
+    }
+    .scan-focus-bg::after {
+      animation-delay: 1.2s;
+    }
+    @keyframes scanWavePulse {
+      0% {
+        transform: scale(0.28);
+        opacity: 0;
+      }
+      16% {
+        opacity: 0.9;
+      }
+      100% {
+        transform: scale(1.18);
+        opacity: 0;
+      }
+    }
+    .sensor-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .sensor-ring circle { fill: none; stroke-width: 3; }
+    .sensor-ring .track { stroke: rgba(0,229,255,0.08); }
+    .sensor-ring .fill {
+      stroke: var(--accent); stroke-linecap: round;
+      filter: drop-shadow(0 0 8px var(--accent-glow));
+      transition: stroke 0.3s;
+    }
+    .sensor-ring .fill.done { stroke: var(--success); filter: drop-shadow(0 0 8px var(--success-glow)); }
+    .sensor-btn {
+      position: absolute; inset: 14px; border-radius: 50%;
+      border: 2px solid rgba(0,229,255,0.15); background: rgba(0,229,255,0.03);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); cursor: pointer;
+      transition: all 0.25s ease; -webkit-user-select: none; user-select: none; touch-action: none;
+      z-index: 2;
+    }
+    .sensor-btn svg {
+      width: 88px; height: 88px; opacity: 0.94;
+      filter: drop-shadow(0 0 10px rgba(0,229,255,0.34));
+      transition: transform 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
+    }
+    .sensor-btn .fp-guide { opacity: 0.26; }
+    .sensor-btn .fp-main { opacity: 1; }
+    .sensor-btn .fp-detail { opacity: 0.7; }
+    .sensor-btn:hover { background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.32); }
+    .sensor-btn.pressing {
+      background: rgba(0,229,255,0.12); border-color: var(--accent);
+      box-shadow: 0 0 30px var(--accent-glow); transform: scale(0.96);
+    }
+    .sensor-btn.pressing svg {
+      opacity: 1;
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 18px rgba(0,229,255,0.52));
+    }
+    .sensor-btn.done {
+      border-color: var(--success); color: var(--success);
+      background: rgba(61,220,132,0.08); box-shadow: 0 0 30px var(--success-glow);
+    }
+    .sensor-btn.done svg {
+      filter: drop-shadow(0 0 12px rgba(61,220,132,0.35));
+    }
+    .sensor-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim);
+      margin-top: 18px; transition: color 0.3s;
+    }
+    .sensor-pct {
+      font-family: var(--heading); font-size: 13px; font-weight: 900;
+      color: var(--accent); margin-top: 6px; opacity: 0; transition: opacity 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .sensor-pct.show { opacity: 1; }
+    .scan-status-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 178px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,229,255,0.32);
+      background: rgba(0,229,255,0.05);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 0 1px rgba(0,229,255,0.04);
+    }
+    .scan-copy {
+      max-width: 300px;
+      margin: 16px auto 0;
+      color: var(--text-mid);
+      font-size: 14px;
+      line-height: 1.55;
+      text-align: center;
+      transition: opacity 220ms ease, transform 220ms ease, filter 220ms ease;
+    }
+    .scan-copy.hidden {
+      opacity: 0;
+      transform: translateY(-6px);
+      filter: blur(2px);
+    }
+
+    /* ── SPINNER (post-scan processing) ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid rgba(0,229,255,0.15);
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+      display: inline-block; vertical-align: middle; margin-right: 8px;
+    }
+    .spinner.success { border-top-color: var(--success); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: block; width: 100%; padding: 16px; margin-top: 16px;
+      border-radius: 12px; border: none;
+      font-family: var(--heading); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;
+    }
+    .btn::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent); pointer-events: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary,
+    .btn-gold,
+    .btn-ghost {
+      background: linear-gradient(180deg, #19dfff 0%, #00b8dd 100%);
+      color: #062632;
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 10px 30px rgba(0,229,255,0.34), 0 0 28px rgba(0,229,255,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    .btn-primary:hover,
+    .btn-gold:hover,
+    .btn-ghost:hover {
+      background: linear-gradient(180deg, #38e5ff 0%, #04c2e7 100%);
+      box-shadow: 0 12px 34px rgba(0,229,255,0.42), 0 0 36px rgba(0,229,255,0.3), inset 0 1px 0 rgba(255,255,255,0.28);
+    }
+    .btn:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 3px;
+    }
+    .btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+    .btn-row { display: grid; gap: 10px; margin-top: 16px; }
+
+    /* ── AGENT CARD ── */
+    .agent-card {
+      margin-top: 20px; border: 1px solid var(--border-hi); border-radius: 16px;
+      background: linear-gradient(135deg, var(--surface), rgba(20,35,60,0.9)); overflow: hidden;
+    }
+    .agent-body { padding: 24px 20px; display: flex; gap: 20px; align-items: center; }
+    .agent-avatar {
+      flex-shrink: 0; width: 72px; height: 72px; border-radius: 16px;
+      border: 1px solid var(--border-hi);
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,229,255,0.06);
+      font-family: var(--heading); font-size: 28px; font-weight: 900; color: var(--accent);
+    }
+    .agent-info { flex: 1; min-width: 0; }
+    .agent-codename {
+      font-family: var(--heading); font-size: clamp(20px, 5vw, 26px);
+      font-weight: 900; color: var(--accent); line-height: 1;
+    }
+
+    /* ── QUIZ ── */
+    .options { display: grid; gap: 10px; margin-top: 20px; }
+    .mission-card {
+      padding: 20px; border: 1px solid var(--border); border-radius: 14px;
+      background: var(--surface); cursor: pointer; transition: all 0.25s ease;
+      position: relative; overflow: hidden;
+    }
+    .mission-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(0,229,255,0.06), transparent);
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .mission-card:hover { border-color: var(--border-hi); }
+    .mission-card:hover::before { opacity: 1; }
+    .mission-card.available { border-color: var(--border-hi); }
+    .mission-card.available::before { opacity: 1; }
+    .mission-card.selected {
+      border-color: var(--accent); background: rgba(0,229,255,0.06);
+      box-shadow: 0 0 20px var(--accent-glow), inset 0 0 20px rgba(0,229,255,0.03);
+    }
+    .mission-card.selected::before { opacity: 1; }
+    .mission-card.locked {
+      opacity: 0.4; cursor: not-allowed; pointer-events: auto;
+    }
+    .mission-card.locked:hover { border-color: var(--border); }
+    .mission-card.locked:hover::before { opacity: 0.35; }
+
+    .locked-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 8, 14, 0.76);
+      backdrop-filter: blur(4px);
+    }
+    .locked-modal-backdrop.show { display: flex; }
+    .locked-modal {
+      width: min(420px, 100%);
+      border-radius: 14px;
+      border: 1px solid rgba(0,229,255,0.32);
+      background: linear-gradient(165deg, rgba(8,16,24,0.98), rgba(6,14,21,0.96));
+      box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 32px rgba(0,229,255,0.18);
+      padding: 18px 16px 14px;
+      animation: modalIn 220ms cubic-bezier(0.16,1,0.3,1);
+    }
+    .locked-modal h3 {
+      font-family: var(--heading);
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .locked-modal p {
+      color: var(--text-mid);
+      font-size: 14px;
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+    .locked-modal .modal-hint {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(180,220,240,0.75);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .locked-modal .btn { margin-top: 0; }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .mission-card .mc-badge {
+      display: inline-block; font-family: var(--mono); font-size: 9px;
+      padding: 2px 8px; border-radius: 4px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .mission-card .mc-badge.available { background: rgba(0,229,255,0.12); color: var(--accent); }
+    .mission-card .mc-badge.locked { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+    .mission-card .mc-badge.selected-badge { background: rgba(0,229,255,0.2); color: var(--accent); }
+
+    .option {
+      width: 100%; text-align: left; padding: 16px 18px; border-radius: 12px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+      color: var(--text); font-family: var(--body); font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s ease;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .option:hover { border-color: var(--border-hi); background: rgba(0,229,255,0.04); }
+    .option.correct {
+      border-color: rgba(61,220,132,0.5); background: rgba(61,220,132,0.08);
+      color: var(--success); box-shadow: 0 0 20px rgba(61,220,132,0.08);
+    }
+    .option.wrong { border-color: rgba(255,77,106,0.4); background: rgba(255,77,106,0.06); color: var(--danger); }
+    .opt-icon { opacity: 0; transition: opacity 0.2s; font-size: 18px; }
+    .option.correct .opt-icon, .option.wrong .opt-icon { opacity: 1; }
+
+    .feedback-bar {
+      margin-top: 12px; padding: 12px 16px; border-radius: 10px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      display: flex; justify-content: space-between; align-items: center;
+      animation: feedbackIn 0.3s ease;
+    }
+    .feedback-bar.ok { background: rgba(61,220,132,0.08); border: 1px solid rgba(61,220,132,0.2); color: var(--success); }
+    .feedback-bar.ko { background: rgba(255,77,106,0.06); border: 1px solid rgba(255,77,106,0.15); color: var(--danger); }
+    @keyframes feedbackIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    .opt-info-panel {
+      margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+      font-size: 13px; line-height: 1.55; color: var(--text-mid);
+      animation: feedbackIn 0.3s ease;
+    }
+    .opt-info-panel--ok {
+      background: rgba(61,220,132,0.06); border: 1px solid rgba(61,220,132,0.18);
+    }
+    .opt-info-panel--ko {
+      background: rgba(255,77,106,0.05); border: 1px solid rgba(255,77,106,0.14);
+    }
+    .opt-info-label {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .opt-info-panel--ok .opt-info-label { color: var(--success); }
+    .opt-info-panel--ko .opt-info-label { color: var(--danger); }
+    .opt-info-text { color: var(--text-mid); margin-bottom: 0; }
+    .opt-info-correct-hint {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(0,229,255,0.1);
+      font-size: 12px; color: var(--text-dim);
+    }
+    .opt-info-correct-hint strong { color: var(--accent); }
+
+    .success-icon {
+      width: 80px; height: 80px; border-radius: 50%; margin: 0 auto;
+      display: flex; align-items: center; justify-content: center; font-size: 36px;
+      background: rgba(61,220,132,0.1); border: 2px solid rgba(61,220,132,0.3);
+      color: var(--success); box-shadow: 0 0 40px rgba(61,220,132,0.15);
+      animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes successPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .coupon {
+      margin-top: 14px; border-radius: 16px; border: 1px solid rgba(240,192,64,0.2);
+      background: linear-gradient(160deg, rgba(240,192,64,0.06), rgba(30,25,15,0.9), rgba(240,192,64,0.04));
+      overflow: hidden; box-shadow: 0 12px 40px rgba(240,192,64,0.08);
+    }
+    .coupon .card-body { padding: 18px 16px; }
+    .reward-box {
+      margin-top: 10px; padding: 16px; border-radius: 12px;
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+    }
+    .reward-title {
+      font-family: var(--heading); font-size: clamp(22px, 5.5vw, 28px);
+      font-weight: 900; line-height: 1.1; text-transform: uppercase; color: var(--text); margin-top: 8px;
+    }
+    .reward-sub { font-size: 18px; font-weight: 800; margin-top: 6px; color: var(--gold); }
+
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .stat {
+      padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+    }
+    .stat-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim);
+    }
+    .stat-value { font-family: var(--heading); font-size: 14px; font-weight: 900; margin-top: 6px; text-transform: uppercase; }
+
+    .glitch { position: relative; animation: glitch-skew 4s infinite linear alternate; }
+    @keyframes glitch-skew { 0%,95%,100%{transform:skew(0)} 96%{transform:skew(-1deg)} 97%{transform:skew(0.5deg)} }
+
+    .center { text-align: center; }
+    .mt-sm { margin-top: 8px; }
+    .mt-md { margin-top: 16px; }
+    #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+
+    @media print {
+      body { background: #fff; }
+      body::before, body::after, .scanlines, #particles, #confetti { display: none; }
+      .app { max-width: 100%; height: auto; overflow: visible; }
+      .screen { min-height: auto; animation: none; opacity: 1; transform: none; }
+      .btn { display: none; }
+      .coupon { border: 2px solid #333; box-shadow: none; }
+      * { color: #000 !important; }
+      .reward-sub { color: #666 !important; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+  <canvas id="confetti"></canvas>
+  <div class="scanlines"></div>
+  <div class="app" id="app"></div>
+
+<script>
+// ─── CONFIG ───
+const AGENT_NAME = "Pavito_2000";
+const REAL_NAME = "David";
+const REAL_SURNAME = "Andreu Carmona";
+
+const QUESTIONS = [
+  { level:"Prova 01 · Identificació", q:"Quin era el nom anterior del EA SPORTS FC?", opts:["Pro Evolution Soccer (PES)","FIFA","This Is Football","International Superstar Soccer (ISS)"], answer:1, ok:"Accés parcial concedit.", ko:"Resposta incorrecta. Torna-ho a provar.",
+    optInfo:[
+      "El gran rival de FIFA. Hi va haver èpoques, sobretot a PS2, en què molta gent el considerava millor jugablement. Conegut també com Winning Eleven i ara eFootball.",
+      "La saga més coneguda i mainstream. Durant molts anys, \"jugar al FIFA\" era pràcticament sinònim de joc de futbol.",
+      "No va arribar al nivell de FIFA o PES, però a PlayStation va tenir bastanta fama.",
+      "Molt mític, sobretot a Super Nintendo i Nintendo 64. És una de les arrels del que després seria PES."
+    ]
+  },
+  { level:"Prova 02 · Validació", q:"Quina d'aquestes ciutats NO apareix a la saga GTA?", opts:["Los Santos","Vice City","Liberty City","Steelport"], answer:3, ok:"Validació superada. Steelport és de Saints Row, no de GTA.", ko:"Incorrecte — aquesta ciutat sí apareix a GTA. Torna-ho a provar.",
+    optInfo:[
+      "Inspirada en Los Ángeles. Apareix a GTA San Andreas (2004) i és la ciutat principal de GTA V (2013). Una de les més icòniques de tota la saga.",
+      "Inspirada en el Miami dels anys 80. Protagonitza GTA Vice City (2002) i GTA Vice City Stories (2006). Famosa per la seva estètica neon i banda sonora inoblidable.",
+      "Inspirada en Nova York. Apareix a GTA III (2001), GTA Liberty City Stories (2005) i és la seu principal de GTA IV (2008).",
+      "Steelport no pertany a la saga GTA. És la ciutat fictícia de Saints Row: The Third (2011), un altre joc de món obert — la competència directa."
+    ]
+  },
+  { level:"Prova 03 · Desbloqueig", q:"Quin d'aquests personatges NO és de Fortnite?", opts:["Jonesy","Mario","Peely","Fishstick"], answer:1, ok:"Objectiu completat. Paquet desbloquejat.", ko:"Codi erroni. Aquest personatge sí és de Fortnite. Torna-hi.",
+    optInfo:[
+      "Jonesy és potser el personatge més icònic de Fortnite. Ha aparegut en desenes de skins i fins i tot té un rol important en la història del joc.",
+      "Mario és la mascota de Nintendo i mai ha aparegut a Fortnite. Nintendo manté els seus personatges en exclusiva als seus propis jocs i plataformes.",
+      "Peely és un plàtan humanoide original de Fortnite. Va debutar a la Temporada 8 i s'ha convertit en un dels personatges més estimats de la comunitat.",
+      "Fishstick és un personatge original de Fortnite amb cap de peix. Va aparèixer per primera vegada a la Temporada 6 i té moltes variants de skin."
+    ]
+  }
+];
+
+const S = { screen:"boot", progress:0, qIdx:0, picked:null, correct:null };
+const $app = document.getElementById("app");
+const BOOT = { typingTimer:null, intervalId:null, navTimer:null, skipped:false };
+
+function clearBootTimers(){
+  if(BOOT.typingTimer){ clearTimeout(BOOT.typingTimer); BOOT.typingTimer=null; }
+  if(BOOT.intervalId){ clearInterval(BOOT.intervalId); BOOT.intervalId=null; }
+  if(BOOT.navTimer){ clearTimeout(BOOT.navTimer); BOOT.navTimer=null; }
+}
+
+// ─── PARTICLES ───
+(function() {
+  const c=document.getElementById("particles"), ctx=c.getContext("2d");
+  let dots=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;}
+  function spawn(){
+    dots=Array.from({length:40},()=>({
+      x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+      r:Math.random()*1.2+0.3,dx:(Math.random()-0.5)*0.15,dy:(Math.random()-0.5)*0.15,
+      a:Math.random()*0.3+0.05
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(const d of dots){
+      d.x+=d.dx;d.y+=d.dy;
+      if(d.x<0)d.x=c.width;if(d.x>c.width)d.x=0;
+      if(d.y<0)d.y=c.height;if(d.y>c.height)d.y=0;
+      ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+      ctx.fillStyle="rgba(0,229,255,"+d.a+")";ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  resize();spawn();draw();
+  addEventListener("resize",()=>{resize();spawn();});
+})();
+
+// ─── CONFETTI ───
+function fireConfetti(){
+  const c=document.getElementById("confetti"),ctx=c.getContext("2d");
+  c.width=innerWidth;c.height=innerHeight;
+  const ps=Array.from({length:120},()=>({
+    x:innerWidth/2+(Math.random()-0.5)*200,y:innerHeight/2,
+    vx:(Math.random()-0.5)*14,vy:Math.random()*-16-4,
+    r:Math.random()*4+2,
+    color:["#00e5ff","#f0c040","#3ddc84","#ff4d6a","#fff"][Math.floor(Math.random()*5)],
+    rot:Math.random()*360,rv:(Math.random()-0.5)*12,life:1
+  }));
+  (function f(){
+    ctx.clearRect(0,0,c.width,c.height);let alive=false;
+    for(const p of ps){
+      if(p.life<=0)continue;alive=true;
+      p.x+=p.vx;p.y+=p.vy;p.vy+=0.35;p.rot+=p.rv;p.life-=0.008;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+      ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;
+      ctx.fillRect(-p.r,-p.r/2,p.r*2,p.r);ctx.restore();
+    }
+    if(alive)requestAnimationFrame(f);else ctx.clearRect(0,0,c.width,c.height);
+  })();
+}
+
+// ─── HELPERS ───
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+function transition(fn){
+  const cur=$app.querySelector(".screen");
+  if(cur){cur.classList.add("screen-exit");cur.addEventListener("animationend",()=>fn(),{once:true});}
+  else fn();
+}
+function go(screen){transition(()=>{S.screen=screen;render();});}
+function render(){
+  ({boot:vBoot,scan:vScan,agent:vAgent,briefing:vBriefing,question:vQuestion,success:vSuccess,reward:vReward})[S.screen]();
+}
+
+// ─── BOOT ───
+function vBoot(){
+  $app.innerHTML='<div class="screen" style="position:relative;padding:20px 16px;display:flex;flex-direction:column;justify-content:center;height:100%">'+
+    '<button id="bootSkipZone" aria-label="Skip boot" style="position:absolute;top:4px;right:4px;width:48px;height:48px;border:0;background:transparent;opacity:0;z-index:4;cursor:pointer"></button>'+
+    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">'+
+      '<div class="eyebrow" style="text-align:center">Mission Protocol</div>'+
+      '<h1 class="glitch" style="text-align:center;margin-bottom:0">St Climent <span class="em">OPS</span></h1>'+
+      '<div style="font-family:var(--mono);font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);margin-top:10px">April 2026</div>'+
+    '</div>'+
+    '<div id="termBox" style="height:0;max-height:55vh;overflow:hidden;background:rgba(0,0,0,0.6);border:1px solid rgba(0,229,255,0.2);border-radius:8px;padding:14px 12px;font-family:JetBrains Mono,monospace;font-size:11px;line-height:1.7;display:flex;flex-direction:column;justify-content:flex-end;position:relative;transition:height 800ms cubic-bezier(0.16,1,0.3,1)">'+
+      '<div style="position:absolute;top:8px;right:12px;font-size:9px;color:var(--text-dim);opacity:0.5">viladecans-st climent -ops@hq ~ %</div>'+
+      '<div id="termLines" style="overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding-top:20px"></div>'+
+    '</div>'+
+    '<div class="progress-track" style="margin-top:14px">'+
+      '<div class="progress-fill" id="bootFill" style="width:0%"></div>'+
+    '</div>'+
+    '<div class="progress-meta">'+
+      '<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text-dim)">boot sequence</span>'+
+      '<span id="bootPct" style="font-family:JetBrains Mono,monospace;font-size:10px">0%</span>'+
+    '</div>'+
+  '</div>';
+}
+
+function startBoot(){
+  clearBootTimers();
+  BOOT.skipped=false;
+  render();
+
+  const skipBoot=()=>{
+    if(BOOT.skipped || S.screen!=="boot") return;
+    BOOT.skipped=true;
+    clearBootTimers();
+    go("scan");
+  };
+
+  const $skip=document.getElementById("bootSkipZone");
+  if($skip){
+    $skip.addEventListener("click", skipBoot);
+    $skip.addEventListener("touchstart", (e)=>{ e.preventDefault(); skipBoot(); }, { passive:false });
+  }
+
+  const lines=[
+    {t:0,    txt:"$ neon-ops --init --secure",                       clr:"var(--text)"},
+    {t:300,  txt:"[SYS] Inicialitzant protocol Neon Ops v4.2.1...", clr:"var(--text-dim)"},
+    {t:800,  txt:"[SYS] Kernel criptogràfic carregat",              clr:"var(--text-dim)"},
+    {t:1100, txt:"[NET] Establint connexió segura...",               clr:"var(--text-dim)"},
+    {t:1600, txt:"[NET] TLS 1.3 handshake completat ✓",             clr:"var(--accent)"},
+    {t:2000, txt:"[NET] Túnel xifrat actiu · latència 12ms",        clr:"var(--text-dim)"},
+    {t:2500, txt:"[AUTH] Carregant mòdul de verificació biomètrica...", clr:"var(--text-dim)"},
+    {t:3000, txt:"[AUTH] Sensor dactilar detectat · firmware OK",    clr:"var(--text-dim)"},
+    {t:3400, txt:"[DB] Sincronitzant base de dades d'agents...",     clr:"var(--text-dim)"},
+    {t:3800, txt:"[DB] 1,247 registres carregats · integritat OK ✓", clr:"var(--accent)"},
+    {t:4200, txt:"[CRYPTO] Generant claus de sessió · AES-256-GCM", clr:"var(--text-dim)"},
+    {t:4600, txt:"[CRYPTO] Clau pública intercanviada · RSA-4096",  clr:"var(--text-dim)"},
+    {t:5000, txt:"$ decrypt --file mission_dossier.enc",             clr:"var(--text)"},
+    {t:5400, txt:"[MISSION] Desencriptant dossier classificat...",   clr:"var(--gold)"},
+    {t:5800, txt:"[MISSION] Contingut verificat · signatura vàlida ✓", clr:"var(--gold)"},
+    {t:6200, txt:"[INTEL] Analitzant perfil d'agent...",             clr:"var(--gold)"},
+    {t:6500, txt:"[INTEL] Agent localitzat a la base de dades",      clr:"var(--gold)"},
+    {t:6900, txt:"[SEC] Activant protocols de seguretat...",         clr:"var(--text-dim)"},
+    {t:7200, txt:"[SEC] Firewall actiu · IDS en línia · logs activats ✓", clr:"var(--accent)"},
+    {t:7600, txt:"[SYS] Preparant interfície d'accés...",            clr:"var(--text-dim)"},
+    {t:8000, txt:"[SYS] Tots els subsistemes operatius ✓",          clr:"var(--accent)"},
+    {t:8400, txt:"",                                                  clr:""},
+    {t:8500, txt:"[OK] ▶ Seqüència completada · Redirigint a verificació biomètrica...", clr:"var(--success)"}
+  ];
+
+  const dur=9000;
+  const growDur=800;
+  const $termBox=document.getElementById("termBox");
+  const $lines=document.getElementById("termLines");
+  const $fill=document.getElementById("bootFill");
+  const $pct=document.getElementById("bootPct");
+  let printed=0;
+
+  const cursor=document.createElement("span");
+  cursor.textContent="█";
+  cursor.style.cssText="color:var(--accent);animation:blink 0.8s step-end infinite;font-size:11px";
+
+  // Grow the terminal panel first, then begin typing.
+  if($termBox){
+    const target=Math.min(Math.round(innerHeight*0.55), 420);
+    requestAnimationFrame(()=>{$termBox.style.height=target+"px";});
+  }
+
+  function runTyping(){
+    const tStart=Date.now();
+    BOOT.intervalId=setInterval(()=>{
+      if(BOOT.skipped){
+        clearBootTimers();
+        return;
+      }
+      const elapsed=Date.now()-tStart;
+      const p=Math.min(100,Math.round(elapsed/dur*100));
+      if($fill)$fill.style.width=p+"%";
+      if($pct)$pct.textContent=p+"%";
+
+      while(printed<lines.length && elapsed>=lines[printed].t){
+        const l=lines[printed];
+        if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
+        const div=document.createElement("div");
+        div.style.cssText="color:"+l.clr+";white-space:nowrap;overflow:hidden";
+        if(l.txt.startsWith("$")){
+          div.style.color="var(--text)";
+          div.style.fontWeight="700";
+        }
+        if(l.txt.includes("[OK]")){
+          div.style.textShadow="0 0 10px var(--success)";
+          div.style.fontWeight="700";
+        }
+        div.textContent=l.txt;
+        $lines.appendChild(div);
+        if(l.txt)$lines.appendChild(cursor);
+        printed++;
+        while($lines.children.length>22){$lines.removeChild($lines.firstChild);} 
+        $lines.scrollTop=$lines.scrollHeight;
+      }
+
+      if(p>=100 && printed>=lines.length){
+        clearBootTimers();
+        BOOT.navTimer=setTimeout(()=>{
+          if(!BOOT.skipped && S.screen==="boot") go("scan");
+        },800);
+      }
+    },50);
+  }
+
+  BOOT.typingTimer=setTimeout(runTyping, growDur+80);
+}
+
+// ─── BIOMETRIC SCAN ───
+function vScan(){
+  // Fingerprint SVG icon
+  const fpSvg='<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+    '<path d="M10.9968 2.60319C10.3437 2.63312 9.70969 2.75738 9.09654 2.97598C8.09881 3.33153 7.1818 3.95103 6.66026 4.62042C6.53963 4.77643 6.50335 4.86441 6.50335 5.00228C6.50335 5.22904 6.65482 5.42405 6.87523 5.48301C6.93963 5.50024 7.05663 5.50024 7.12285 5.48301C7.24983 5.45035 7.32874 5.38958 7.44756 5.23629C7.73872 4.85988 8.25754 4.46078 8.8335 4.17325C9.46026 3.85852 10.136 3.67076 10.8435 3.61362C11.0711 3.59548 11.6072 3.60001 11.8049 3.62269C12.1968 3.66713 12.5006 3.7279 12.8571 3.83221C13.2961 3.96101 13.7079 4.13697 14.2176 4.41271C14.3501 4.48437 14.4253 4.50432 14.5342 4.49616C14.9088 4.46985 15.1165 4.06441 14.9233 3.73788C14.8571 3.62632 14.7609 3.56192 14.3718 3.366C13.4984 2.92609 12.6013 2.67303 11.6961 2.61316C11.4893 2.59956 11.18 2.59502 10.9968 2.60319ZM11.3015 4.69933C11.0312 4.71747 10.7709 4.76192 10.4353 4.84808C9.36049 5.12291 8.44167 5.56192 7.70516 6.1533C7.21536 6.54695 6.8072 6.98595 6.39541 7.56282C6.25119 7.76509 5.96003 8.20772 5.92375 8.28028C5.8267 8.47167 5.86389 8.69661 6.01718 8.84808C6.12784 8.95874 6.24575 9.00319 6.39904 8.99502C6.50335 8.98958 6.58679 8.95874 6.67205 8.89525C6.73101 8.85081 6.74643 8.83085 6.95686 8.51521C7.34779 7.92926 7.5555 7.66532 7.88203 7.33697C8.5623 6.65307 9.37681 6.18958 10.4399 5.8821C10.946 5.73607 11.2072 5.69253 11.5872 5.69253C11.8158 5.69253 11.9256 5.70069 12.1405 5.73244C13.0929 5.87303 14.1741 6.38913 15.2108 7.19729C15.9809 7.79865 16.6866 8.53335 17.1328 9.19911C17.1791 9.26804 17.238 9.34332 17.2643 9.36691C17.3578 9.45217 17.4721 9.49661 17.599 9.49661C17.7378 9.49661 17.8512 9.44945 17.9501 9.35149C18.0498 9.25262 18.0952 9.14106 18.0952 8.99775C18.0952 8.8626 18.0716 8.80455 17.9473 8.61951C17.3705 7.766 16.4417 6.83811 15.4693 6.14332C14.0308 5.11657 12.5804 4.61407 11.3015 4.69933ZM11.0022 6.86623C9.92829 6.94332 8.99586 7.33697 8.17047 8.06169C8.04892 8.16872 7.99722 8.23493 7.96457 8.32292C7.87387 8.56418 7.98271 8.8372 8.2131 8.94786C8.35731 9.01679 8.51151 9.01498 8.65754 8.94332C8.68929 8.9279 8.75641 8.87711 8.82081 8.82087C9.33781 8.36464 9.89926 8.07348 10.517 7.94196C10.8145 7.87756 10.9995 7.85942 11.3514 7.86033C11.7369 7.86033 12.0253 7.8948 12.3745 7.98187C13.3832 8.23221 14.2838 8.8236 15.0503 9.73879C15.1573 9.86577 15.3587 10.1379 15.4657 10.2993C16.3655 11.6535 16.9033 13.4404 17.0566 15.5828C17.0793 15.9057 17.0893 16.156 17.0965 16.5578C17.1029 16.946 17.1038 16.9479 17.1265 17.0141C17.1573 17.1002 17.1954 17.1574 17.2634 17.2218C17.5337 17.4748 17.9736 17.3497 18.0807 16.9896C18.1133 16.8798 18.0943 16.059 18.0444 15.4059C17.7904 12.068 16.604 9.4567 14.6829 8.00818C13.8249 7.36146 12.8734 6.98414 11.8367 6.87983C11.6698 6.8626 11.1664 6.85443 11.0022 6.86623ZM11.0675 9.19276C10.0888 9.30432 9.27613 9.79412 8.70199 10.6177C8.49155 10.9188 8.28203 11.3479 8.14688 11.7506C7.96729 12.2875 7.86117 12.8699 7.80765 13.6191C7.79223 13.8304 7.79223 14.7465 7.80765 14.9624C7.81945 15.1365 7.83577 15.2018 7.88657 15.288C7.95096 15.3977 8.08339 15.493 8.20675 15.5184C8.46344 15.5719 8.72013 15.4168 8.79269 15.1655C8.81174 15.1011 8.81174 15.054 8.79813 14.7166C8.77999 14.2703 8.79178 13.7705 8.82988 13.3742C8.9496 12.1497 9.33056 11.2408 9.94552 10.7138C10.2829 10.4245 10.7038 10.2422 11.1528 10.1896C11.3061 10.1714 11.6562 10.1769 11.8457 10.1996C12.6194 10.293 13.2471 10.585 13.7759 11.0966C14.2829 11.5873 14.6711 12.2903 14.8979 13.1293C14.9523 13.3324 14.985 13.3996 15.063 13.4776C15.1637 13.5764 15.277 13.6236 15.4149 13.6236C15.5464 13.6236 15.6589 13.5792 15.755 13.4884C15.8984 13.3542 15.9428 13.1746 15.8866 12.9569C15.3469 10.8717 14.0145 9.53471 12.1814 9.23901C11.9265 9.19729 11.7931 9.18731 11.4784 9.18369C11.2607 9.18096 11.1482 9.18369 11.0675 9.19276ZM7.20357 9.50659C7.06208 9.52745 6.93691 9.60908 6.85618 9.73516C6.80992 9.80682 6.62942 10.1642 6.55323 10.3356C6.07523 11.4095 5.82761 12.5796 5.87659 13.5374C5.9428 14.8254 6.33373 16.0635 6.91332 16.8191C7.31786 17.346 7.80312 17.6472 8.35641 17.7152C8.4716 17.7288 8.7809 17.7206 8.8979 17.7007C9.51378 17.5964 9.96911 17.2572 10.253 16.6903C10.3936 16.41 10.4943 16.0662 10.5478 15.6816C10.595 15.3433 10.604 15.1782 10.6122 14.5397C10.6176 14.0862 10.6222 13.9637 10.6349 13.8866C10.741 13.2218 11.0947 12.7084 11.5628 12.5406C11.7315 12.4807 11.951 12.4626 12.0616 12.4998C12.3773 12.6059 12.7428 13.1438 12.9795 13.8504C13.1664 14.4064 13.2698 14.9887 13.2979 15.6426C13.336 16.5125 13.1745 17.366 12.8099 18.2295C12.7292 18.4191 12.5296 18.8163 12.4208 19.0023C12.2376 19.317 11.9882 19.6735 11.7614 19.9456C11.629 20.1052 11.2807 20.4544 11.1745 20.5352C10.9587 20.6993 10.8852 20.8299 10.8961 21.0295C10.9043 21.1828 10.9786 21.3179 11.102 21.405C11.1981 21.4721 11.2643 21.4921 11.3922 21.4921C11.5591 21.4921 11.6262 21.4603 11.8503 21.2726C12.4653 20.7601 13.1092 19.9039 13.5464 19.0159C14.1043 17.8821 14.3519 16.732 14.2947 15.542C14.2222 14.0562 13.7414 12.6812 13.0521 11.99C12.6793 11.6163 12.2739 11.4513 11.8077 11.483C11.3596 11.5138 10.975 11.6608 10.6267 11.9347C10.5233 12.0154 10.2956 12.2494 10.2113 12.3628C9.94824 12.7157 9.77047 13.1175 9.67795 13.5674C9.62625 13.8259 9.62262 13.873 9.61446 14.4898C9.60448 15.2662 9.5809 15.5365 9.49291 15.8776C9.38316 16.3039 9.20085 16.5587 8.93509 16.6612C8.80992 16.7093 8.73645 16.7211 8.57137 16.7211C8.39722 16.7211 8.33464 16.7075 8.19405 16.6395C7.62988 16.3665 7.14008 15.3996 6.94416 14.1723C6.82081 13.3941 6.85074 12.7438 7.04847 11.9501C7.18362 11.4086 7.37681 10.8971 7.63804 10.3873C7.6979 10.2712 7.75233 10.1533 7.75958 10.1243C7.77682 10.059 7.77682 9.94106 7.75958 9.87484C7.73781 9.78958 7.69428 9.71521 7.62897 9.6499C7.51559 9.53652 7.35958 9.48391 7.20357 9.50659ZM11.7841 14.0281C11.697 14.0572 11.6353 14.0971 11.5718 14.166C11.5083 14.2349 11.4693 14.3129 11.4494 14.4082C11.4367 14.4708 11.4367 14.4934 11.4457 14.5714C11.5292 15.2581 11.3043 16.3465 10.9106 17.1592C10.8099 17.3687 10.76 17.4567 10.643 17.6327C10.5306 17.8032 10.4399 17.912 10.2984 18.0499C9.85482 18.4798 9.26162 18.7175 8.55686 18.7483C8.39994 18.7547 8.36457 18.7592 8.31015 18.7782C7.96094 18.8998 7.85754 19.3406 8.11695 19.6009C8.18498 19.6689 8.27568 19.7197 8.36003 19.7379C8.43532 19.7533 8.77455 19.7424 8.95233 19.7188C9.94915 19.5864 10.78 19.1202 11.3396 18.3801C11.9056 17.6299 12.3238 16.4717 12.4417 15.3288C12.4516 15.2254 12.4571 15.0921 12.4571 14.898C12.4589 14.42 12.429 14.2894 12.2902 14.1497C12.1904 14.049 12.0798 14.0045 11.9319 14.0045C11.8693 14.0045 11.8349 14.01 11.7841 14.0281ZM15.5301 14.5488C15.4367 14.5733 15.3795 14.6068 15.3052 14.6803C15.2344 14.7501 15.1845 14.839 15.1664 14.9279C15.16 14.9569 15.1564 15.0875 15.1564 15.2544C15.1564 16.6413 14.8761 18.224 14.3374 19.8866C14.2684 20.0971 14.2594 20.1615 14.2802 20.2631C14.3501 20.5968 14.7047 20.7683 15.0013 20.6123C15.131 20.5442 15.2018 20.4508 15.2616 20.2703C15.6571 19.0848 15.9546 17.7615 16.0761 16.6485C16.1296 16.1587 16.1451 15.8975 16.1514 15.3968C16.1569 14.9343 16.156 14.9225 16.0979 14.8027C16.0634 14.732 15.9637 14.6286 15.8938 14.5914C15.8321 14.5587 15.7197 14.5306 15.6516 14.5315C15.6208 14.5315 15.5664 14.5397 15.5301 14.5488Z" fill="currentColor"/>'+
+  '</svg>';
+
+  const radius=63;
+  const circ=Math.round(2*Math.PI*radius);
+
+  $app.innerHTML='<div class="screen" id="rewardScreen">'+
+    '<div id="scanDeck" class="scan-card-in" style="width:100%;height:100%;display:flex;flex-direction:column;padding:8px 6px 0">'+
+      /* Status bar top */
+      '<div id="scanTop" class="scan-reveal" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:0 8px">'+
+        '<div class="hud-status" style="color:var(--accent)"><span class="hud-dot"></span> System Active</div>'+
+        '<div class="hud-label">Protocol v4.2</div>'+
+      '</div>'+
+      /* Title area */
+      '<div id="scanTitle" class="scan-reveal" style="text-align:center;margin-top:24px;margin-bottom:0;padding:0 12px">'+
+        '<div class="hud-label" style="margin-bottom:8px;letter-spacing:0.4em">Biometric Verification</div>'+
+        '<h2 style="margin-top:0;font-size:clamp(22px,6vw,32px)">Verificació <span class="em">d\'accés</span></h2>'+
+      '</div>'+
+      /* Sensor — centered and bigger */
+      '<div id="scanSensor" class="sensor-area scan-reveal" style="position:relative;margin-top:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:112px">'+
+        '<div id="scanAccessChip" class="scan-status-chip" style="position:relative;z-index:2;margin:0 auto 28px">Accés bloquejat</div>'+
+        '<div class="sensor-wrap scan-sensor-intro" style="width:236px;height:236px;z-index:2">'+
+          '<div class="scan-focus-bg" aria-hidden="true"></div>'+
+          '<svg class="sensor-ring" viewBox="0 0 160 160">'+
+            '<circle class="track" cx="80" cy="80" r="'+radius+'"/>'+
+            '<circle class="fill" id="ringFill" cx="80" cy="80" r="'+radius+'" style="stroke-dasharray:'+circ+';stroke-dashoffset:'+circ+'"/>'+
+          '</svg>'+
+          '<div class="sensor-btn" id="sensorBtn">'+fpSvg+'</div>'+
+        '</div>'+
+        '<div class="sensor-pct" id="sensorPct" style="position:relative;z-index:2;font-size:48px;line-height:1;margin-top:26px">0%</div>'+
+        '<div class="sensor-label scan-status-chip" id="sensorLabel" style="position:relative;z-index:2;margin-top:28px">Prem i mantén</div>'+
+        '<p id="scanCopy" class="scan-copy" style="position:relative;z-index:2">Col·loca el dit índex sobre el sensor i mantén-lo premut durant 4 segons.</p>'+
+      '</div>'+
+      /* Status tags */
+      '<div id="scanTags" class="scan-reveal" style="display:none;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px;opacity:0.92">'+
+        '<span class="tag" id="tagScan">Esperant scan</span>'+
+        '<span class="tag" id="tagAccess">Accés bloquejat</span>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+
+  // Phased reveal after card unfolds to keep the intro cinematic.
+  [
+    ["scanTop", 90],
+    ["scanTitle", 180],
+    ["scanSensor", 270],
+    ["scanTags", 360]
+  ].forEach(([id, delay])=>{
+    const el=document.getElementById(id);
+    if(el){setTimeout(()=>el.classList.add("show"), delay);}
+  });
+  const $scanSweep=document.getElementById("scanSweep");
+  if($scanSweep){setTimeout(()=>{$scanSweep.style.opacity="0";}, 980);} 
+
+  const sensorBtn=document.getElementById("sensorBtn");
+  const ringFill=document.getElementById("ringFill");
+  const sLabel=document.getElementById("sensorLabel");
+  const sPct=document.getElementById("sensorPct");
+  const scanCopy=document.getElementById("scanCopy");
+  const accessChip=document.getElementById("scanAccessChip");
+  const tagScan=document.getElementById("tagScan");
+  const tagAccess=document.getElementById("tagAccess");
+  let holdTimer=null,startTime=0,rafId=null,done=false;
+  const HOLD=4000;
+
+  function startHold(e){
+    if(done)return;e.preventDefault();
+    startTime=Date.now();
+    sensorBtn.classList.add("pressing");
+    sLabel.textContent="Escanejant empremta dactilar...";
+    sPct.classList.add("show");
+    if(scanCopy) scanCopy.classList.add("hidden");
+    if(accessChip){
+      accessChip.textContent="Escaneig actiu";
+      accessChip.style.color="var(--accent)";
+      accessChip.style.borderColor="rgba(0,229,255,0.42)";
+      accessChip.style.background="rgba(0,229,255,0.08)";
+    }
+    tagScan.textContent="Scanning...";
+    tagScan.style.borderColor="rgba(0,229,255,0.3)";
+    tagScan.style.color="var(--accent)";
+    tagScan.style.background="var(--accent-soft)";
+    tick();
+    holdTimer=setTimeout(onScanDone,HOLD);
+  }
+
+  function endHold(e){
+    if(done)return;e.preventDefault();
+    clearTimeout(holdTimer);cancelAnimationFrame(rafId);
+    sensorBtn.classList.remove("pressing");
+    ringFill.style.strokeDashoffset=circ;
+    sLabel.textContent="Prem i mantén durant 4 segons";
+    sPct.classList.remove("show");
+    sPct.textContent="0%";
+    if(scanCopy) scanCopy.classList.remove("hidden");
+    if(accessChip){
+      accessChip.textContent="Accés bloquejat";
+      accessChip.style.color="var(--accent)";
+      accessChip.style.borderColor="rgba(0,229,255,0.32)";
+      accessChip.style.background="rgba(0,229,255,0.05)";
+    }
+    tagScan.textContent="Esperant scan";
+    tagScan.style.borderColor="";tagScan.style.color="";tagScan.style.background="";
+  }
+
+  function tick(){
+    const pct=Math.min(1,(Date.now()-startTime)/HOLD);
+    ringFill.style.strokeDashoffset=circ*(1-pct);
+    sPct.textContent=Math.round(pct*100)+"%";
+    if(pct<1)rafId=requestAnimationFrame(tick);
+  }
+
+  function onScanDone(){
+    // Phase 1: Scan complete
+    done=true;cancelAnimationFrame(rafId);
+    ringFill.style.strokeDashoffset=0;
+    sPct.textContent="100%";
+    sensorBtn.classList.remove("pressing");
+    sLabel.innerHTML='<span class="spinner"></span>Scan completat · Verificant identitat...';
+    if(scanCopy) scanCopy.classList.add("hidden");
+    if(accessChip){
+      accessChip.textContent="Verificant identitat";
+      accessChip.style.color="var(--accent)";
+      accessChip.style.borderColor="rgba(0,229,255,0.42)";
+      accessChip.style.background="rgba(0,229,255,0.08)";
+    }
+    tagScan.textContent="Scan OK";
+    tagScan.style.borderColor="rgba(61,220,132,0.3)";
+    tagScan.style.color="var(--success)";
+    tagScan.style.background="rgba(61,220,132,0.08)";
+
+    // Phase 2: After 1.5s — "processing"
+    setTimeout(()=>{
+      sLabel.innerHTML='<span class="spinner"></span>Comparant dades biomètriques...';
+    },1500);
+
+    // Phase 3: After 3s — access granted
+    setTimeout(()=>{
+      ringFill.classList.add("done");
+      sensorBtn.classList.add("done");
+      sensorBtn.innerHTML='<span style="font-size:36px">✓</span>';
+      sLabel.innerHTML='Accés concedit';
+      sLabel.style.color="var(--success)";
+      sPct.style.color="var(--success)";
+      if(accessChip){
+        accessChip.textContent="Accés concedit";
+        accessChip.style.color="var(--success)";
+        accessChip.style.borderColor="rgba(61,220,132,0.34)";
+        accessChip.style.background="rgba(61,220,132,0.08)";
+      }
+      tagAccess.textContent="Accés concedit";
+      tagAccess.style.borderColor="rgba(61,220,132,0.3)";
+      tagAccess.style.color="var(--success)";
+      tagAccess.style.background="rgba(61,220,132,0.08)";
+    },3200);
+
+    // Phase 4: After 4.5s — navigate
+    setTimeout(()=>go("agent"),4500);
+  }
+
+  sensorBtn.addEventListener("mousedown",startHold);
+  sensorBtn.addEventListener("mouseup",endHold);
+  sensorBtn.addEventListener("mouseleave",endHold);
+  sensorBtn.addEventListener("touchstart",startHold,{passive:false});
+  sensorBtn.addEventListener("touchend",endHold,{passive:false});
+  sensorBtn.addEventListener("touchcancel",endHold,{passive:false});
+
+  // ── Hidden triple-tap on top area → skip to agent screen ──
+  let _tapCount=0, _tapTimer=null;
+  const scanTop=document.getElementById("scanTop");
+  if(scanTop){
+    scanTop.addEventListener("click",()=>{
+      _tapCount++;
+      clearTimeout(_tapTimer);
+      if(_tapCount>=3){ _tapCount=0; go("agent"); return; }
+      _tapTimer=setTimeout(()=>{ _tapCount=0; },600);
+    });
+  }
+}
+
+// ─── AGENT ───
+function vAgent(){
+  const fullName=REAL_NAME+(REAL_SURNAME?" "+REAL_SURNAME:"");
+  const agentId="ID-"+String(Math.floor(Math.random()*9000+1000));
+
+  const kpis=[
+    {label:"Velocitat",val:87,icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',bg:"rgba(0,60,80,0.5)",clr:"#00e5ff"},
+    {label:"T\u00e8cnica",val:92,icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',bg:"rgba(60,50,10,0.5)",clr:"#f0c040"},
+    {label:"For\u00e7a",val:78,icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6"/><path d="M2 12l2-2 2 2"/><path d="M18 10l2-2 2 2"/><path d="M8 6l2-2 2 2"/><path d="M12 20l2-2 2 2"/></svg>',bg:"rgba(10,50,30,0.5)",clr:"#3ddc84"},
+    {label:"Intel",val:95,icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 3.4 2.1 6.3 5 7.4V19h6v-1.6c2.9-1.1 5-4 5-7.4a8 8 0 0 0-8-8z"/><path d="M9 22h6"/></svg>',bg:"rgba(40,20,60,0.5)",clr:"#c084fc"},
+    {label:"Resist.",val:83,icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4-3.5-8-7-8-11a8 8 0 0 1 16 0c0 4-4 7.5-8 11z"/><path d="M12 13V7"/><path d="M9 10l3-3 3 3"/></svg>',bg:"rgba(60,20,20,0.5)",clr:"#ff6b6b"}
+  ];
+
+  function kpiCard(k){
+    return '<div style="flex:0 0 auto;min-width:106px;background:'+k.bg+';border:1px solid rgba(0,229,255,0.1);border-radius:14px;padding:14px 16px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:8px">'+
+      '<div style="color:'+k.clr+'">'+k.icon+'</div>'+
+      '<div style="font-family:var(--heading);font-size:22px;font-weight:900;color:'+k.clr+'">'+k.val+'</div>'+
+      '<div style="font-family:var(--mono);font-size:8px;color:rgba(0,229,255,0.5);text-transform:uppercase;letter-spacing:0.5px">'+k.label+'</div>'+
+    '</div>';
+  }
+
+  const avg=Math.round(kpis.reduce((a,k)=>a+k.val,0)/kpis.length);
+
+  $app.innerHTML='<div class="screen" style="justify-content:flex-start;padding-bottom:0;gap:0;overflow:hidden">'+
+    '<div class="screen-header">'+
+      '<div class="eyebrow">Agent File Unlocked</div>'+
+    '</div>'+
+    /* ─── MAIN HUD CARD ─── */
+    '<div class="flip-container" id="agentPhoto" style="margin-top:2px">'+
+      '<div class="flip-inner" id="flipInner">'+
+        /* ─── FRONT: Neon Operative HUD ─── */
+        '<div class="flip-front" style="position:relative;aspect-ratio:9/16;max-height:58vh;background:#080c12;border:1px solid rgba(0,229,255,0.15);overflow:hidden">'+
+          '<img src="Edited_Pavito_Neon.jpg" alt="Agent" style="width:100%;height:100%;object-fit:cover;object-position:center -8px" onerror="this.style.display=\'none\'">'+
+          '<button class="flip-hint" aria-label="Tap per girar" title="Tap per girar">'+
+            '<img src="pavito_logo_icon.svg" alt="Pavito logo" onerror="this.style.display=\'none\'">'+
+          '</button>'+
+          /* HUD corners */
+          '<div class="hud-corner hud-corner--tl" style="margin:8px"></div>'+
+          '<div class="hud-corner hud-corner--tr" style="margin:8px"></div>'+
+          '<div class="hud-corner hud-corner--bl" style="margin:8px"></div>'+
+          '<div class="hud-corner hud-corner--br" style="margin:8px"></div>'+
+          /* Bottom gradient with name */
+          '<div style="position:absolute;bottom:0;left:0;right:0;z-index:1;background:linear-gradient(0deg,rgba(5,10,15,0.98) 0%,rgba(5,10,15,0.85) 50%,transparent 100%);padding:20px 16px 14px">'+
+            '<div style="font-family:var(--heading);font-size:clamp(20px,6vw,28px);font-weight:900;text-transform:uppercase;color:var(--text);line-height:1.05">Neon<br><span style="color:var(--accent)">St-Cli Operative</span></div>'+
+            '<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-top:8px;letter-spacing:0.1em;text-transform:uppercase">Future ready. Mission focused. Built different.</div>'+
+            '<div style="margin-top:12px;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px">'+
+              '<div class="hud-label" style="flex-shrink:0">Name:</div>'+
+              '<div style="font-family:var(--heading);font-size:16px;font-weight:900;color:var(--text)">David Andreu Carmona</div>'+
+            '</div>'+
+          '</div>'+
+          /* Sweep animation overlay */
+          '<div class="hud-sweep" style="position:absolute;inset:0;pointer-events:none;z-index:1"></div>'+
+        '</div>'+
+        /* ─── BACK: Squad photo ─── */
+        '<div class="flip-back" style="aspect-ratio:9/16;max-height:58vh;background:#080c12;border:1px solid var(--accent);box-shadow:0 0 30px var(--accent-glow);overflow:hidden">'+
+          '<img src="Edited_Pavito_Neon_Back.jpg" style="width:100%;height:calc(100% + 24px);object-fit:cover;object-position:center top;transform:translateY(-24px)" onerror="this.style.display=\'none\'">'+
+          '<button class="flip-hint" aria-label="Tap per girar" title="Tap per girar">'+
+            '<img src="pavito_logo_icon.svg" alt="Pavito logo" onerror="this.style.display=\'none\'">'+
+          '</button>'+
+          '<div class="hud-corner hud-corner--tl" style="margin:8px"></div>'+
+          '<div class="hud-corner hud-corner--tr" style="margin:8px"></div>'+
+          '<div class="hud-corner hud-corner--bl" style="margin:8px"></div>'+
+          '<div class="hud-corner hud-corner--br" style="margin:8px"></div>'+
+          '<div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,10,15,0.9) 0%,rgba(5,10,15,0.2) 40%,transparent 60%)"></div>'+
+          '<div style="position:absolute;top:12px;left:14px">'+
+            '<div class="hud-status" style="color:var(--accent)"><span class="hud-dot"></span> Classified Intel</div>'+
+          '</div>'+
+          '<div style="position:absolute;top:42px;left:14px;z-index:2;padding:10px 12px;background:rgba(5,14,22,0.62);border:1px solid rgba(0,229,255,0.2);border-radius:8px;backdrop-filter:blur(2px)">'+
+            '<div class="hud-label" style="letter-spacing:0.14em">Known partners:</div>'+
+            '<div style="font-family:var(--heading);font-size:13px;font-weight:800;color:var(--text);margin-top:2px">Pau Andreu</div>'+
+            '<div class="hud-label" style="letter-spacing:0.14em;margin-top:14px">Asset location:</div>'+
+            '<div style="font-family:var(--heading);font-size:13px;font-weight:800;color:var(--text);margin-top:2px">Sant Climent de Llob</div>'+
+            '<div class="hud-label" style="letter-spacing:0.14em;margin-top:14px">Date of birth:</div>'+
+            '<div style="font-family:var(--heading);font-size:13px;font-weight:800;color:var(--text);margin-top:2px">April 8, 2014</div>'+
+            '<div class="hud-label" style="letter-spacing:0.14em;margin-top:14px">Preferred drink:</div>'+
+            '<div style="font-family:var(--heading);font-size:13px;font-weight:800;color:var(--text);margin-top:2px">Wine</div>'+
+          '</div>'+
+          '<div style="position:absolute;bottom:0;left:0;right:0;padding:14px 16px">'+
+            '<div style="font-family:var(--heading);font-size:9px;letter-spacing:3px;color:var(--accent);text-transform:uppercase">Top Secret \u00b7 Agent File</div>'+
+            '<div style="font-family:var(--heading);font-size:20px;font-weight:900;color:var(--text);margin-top:4px">Equip ready per a missi\u00f3</div>'+
+            '<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:4px">Pavito_2000 \u00b7 Triiim \u00b7 brohan</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    /* ─── STATS BAR ─── */
+    '<div style="margin-top:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div class="hud-label">Agent Stats</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:2px;-webkit-overflow-scrolling:touch" class="hide-scrollbar">'+
+        kpis.map(kpiCard).join("")+
+      '</div>'+
+    '</div>'+
+    '<div class="screen-footer">'+
+      '<button class="btn btn-primary" id="next" style="width:100%">Veure missions</button>'+
+    '</div>'+
+  '</div>';
+  document.getElementById("next").onclick=()=>go("briefing");
+
+  // Flip card on click
+  document.getElementById("agentPhoto").onclick=function(){
+    document.getElementById("flipInner").classList.toggle("flipped");
+  };
+}
+// ─── BRIEFING ───
+function vBriefing(){
+  const missions=[
+    {
+      id:"birthday",
+      name:"Birthday Impossible",
+      desc:"3 proves classificades per desbloquejar un paquet secret. Nivell de risc: alt.",
+      difficulty:"Mitjà-Alt",
+      phases:3,
+      status:"available",
+      reward:"Paquet secret"
+    },
+    {
+      id:"locked1",
+      name:"Operation Phantom",
+      desc:"Missió d'infiltració avançada. Requereix clearance nivell 7.",
+      difficulty:"Expert",
+      phases:5,
+      status:"locked"
+    },
+    {
+      id:"locked2",
+      name:"Protocol Zero",
+      desc:"Desactivació de sistemes enemics. Només agents veterants.",
+      difficulty:"Letal",
+      phases:4,
+      status:"locked"
+    }
+  ];
+
+  let selected=null;
+
+  function getLockedReason(mid){
+    if(mid==="locked1") return "Aquesta missió depèn de completar primer Birthday Impossible. Quan la superis, s'activarà el compte enrere de desbloqueig.";
+    if(mid==="locked2") return "Primer cal completar Birthday Impossible i la missió Operation Phantom. Després hauràs d'esperar el temps de desbloqueig.";
+    return "Aquesta missió encara no està disponible perquè depèn de nivells anteriors.";
+  }
+
+  function renderBriefing(){
+    const cardsHtml=missions.map(m=>{
+      const isSelected=selected===m.id;
+      const isLocked=m.status==="locked";
+      const cls="mission-card"+(isSelected?" selected":"")+(isLocked?" locked":" available");
+      const badge=isLocked?'<span class="mc-badge locked">Bloquejat</span>':
+                  isSelected?'<span class="mc-badge selected-badge">Seleccionat</span>':
+                  '<span class="mc-badge available">Disponible</span>';
+      return '<div class="'+cls+'" data-mission="'+m.id+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+          '<div style="font-family:var(--heading);font-size:16px;font-weight:900;text-transform:uppercase;color:'+(isLocked?'var(--text-dim)':isSelected?'var(--accent)':'var(--text)')+'">'+m.name+'</div>'+
+          badge+
+        '</div>'+
+        '<div style="font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:14px">'+m.desc+'</div>'+
+        '<div style="display:flex;gap:14px;font-family:var(--mono);font-size:10px;color:var(--text-dim)">'+
+          '<span>'+(isLocked?'??':m.phases)+' fases</span>'+
+          '<span>Dificultat: <span style="color:'+(m.difficulty==='Letal'?'var(--danger)':m.difficulty==='Expert'?'var(--gold)':'var(--accent)')+'">'+m.difficulty+'</span></span>'+
+          (m.reward?'<span>'+m.reward+'</span>':'')+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    $app.innerHTML='<div class="screen">'+
+      '<div class="screen-header">'+
+        '<div class="eyebrow">Mission Select</div>'+
+        '<h2>Missions <span class="em">disponibles</span></h2>'+
+      '</div>'+
+      '<p class="subtitle" style="margin-bottom:24px">Agent <strong style="color:var(--accent)">'+esc(AGENT_NAME)+'</strong>, selecciona una missió per continuar.</p>'+
+      '<div style="display:flex;flex-direction:column;gap:14px">'+
+        cardsHtml+
+      '</div>'+
+      '<div class="screen-footer">'+
+        '<button class="btn btn-primary" id="accept" '+(selected?'':'disabled style="opacity:0.4;pointer-events:none"')+'>Començar missió</button>'+
+      '</div>'+
+      '<div class="locked-modal-backdrop" id="lockedModal" aria-hidden="true">'+
+        '<div class="locked-modal" id="lockedModalCard" role="dialog" aria-modal="true" aria-labelledby="lockedTitle">'+
+          '<h3 id="lockedTitle">Missió no disponible</h3>'+
+          '<p id="lockedMessage">Aquesta missió encara no està disponible.</p>'+
+          '<span class="modal-hint">Dependències actives · desbloqueig progressiu</span>'+
+          '<button class="btn btn-primary" id="lockedModalClose">Entesos</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+    const lockedModal=document.getElementById("lockedModal");
+    const lockedModalCard=document.getElementById("lockedModalCard");
+    const lockedMessage=document.getElementById("lockedMessage");
+    const lockedModalClose=document.getElementById("lockedModalClose");
+
+    function openLockedModal(mid){
+      if(!lockedModal || !lockedMessage) return;
+      lockedMessage.textContent=getLockedReason(mid);
+      lockedModal.classList.add("show");
+      lockedModal.setAttribute("aria-hidden","false");
+    }
+    function closeLockedModal(){
+      if(!lockedModal) return;
+      lockedModal.classList.remove("show");
+      lockedModal.setAttribute("aria-hidden","true");
+    }
+
+    document.querySelectorAll("[data-mission]").forEach(el=>{
+      el.onclick=()=>{
+        const mid=el.getAttribute("data-mission");
+        const mission=missions.find(m=>m.id===mid);
+        if(!mission) return;
+        if(mission.status==="locked"){
+          openLockedModal(mid);
+          return;
+        }
+        selected=mid;
+        renderBriefing();
+      };
+    });
+    if(lockedModal) lockedModal.onclick=closeLockedModal;
+    if(lockedModalCard) lockedModalCard.onclick=(e)=>e.stopPropagation();
+    if(lockedModalClose) lockedModalClose.onclick=closeLockedModal;
+    const btn=document.getElementById("accept");
+    if(btn && selected) btn.onclick=()=>{S.qIdx=0;S.picked=null;S.correct=null;go("question");};
+  }
+
+  renderBriefing();
+}
+
+// ─── QUESTION ───
+function vQuestion(){
+  const q=QUESTIONS[S.qIdx],num=S.qIdx+1,total=QUESTIONS.length;
+  const pct=Math.round(num/total*100);
+  let optsHtml="";
+  for(let i=0;i<q.opts.length;i++){
+    let cls="option",icon="";
+    if(S.correct===true&&q.answer===i){cls+=" correct";icon="\u2713";}
+    else if(S.picked===i&&S.correct===false){cls+=" wrong";icon="\u2717";}
+    optsHtml+='<button class="'+cls+'" data-i="'+i+'"><span>'+esc(q.opts[i])+'</span><span class="opt-icon">'+icon+'</span></button>';
+  }
+  let fbHtml="";
+  if(S.correct!==null){
+    fbHtml='<div class="feedback-bar '+(S.correct?"ok":"ko")+'"><span>'+(S.correct?q.ok:q.ko)+'</span></div>';
+    if(q.optInfo && S.picked!==null){
+      const isOk=S.correct;
+      fbHtml+='<div class="opt-info-panel '+(isOk?"opt-info-panel--ok":"opt-info-panel--ko")+'">'
+        +'<div class="opt-info-label">'+(isOk?'✓ ':' ✗ ')+esc(q.opts[S.picked])+'</div>'
+        +'<p class="opt-info-text">'+esc(q.optInfo[S.picked])+'</p>'
+        +'</div>';
+    }
+  }
+  let nxHtml="";
+  if(S.correct===true) nxHtml='<button class="btn btn-primary" id="nextQ">'+(num===total?"Unlock Package":"Següent prova")+'</button>';
+
+  $app.innerHTML='<div class="screen" id="rewardScreen">'+
+    '<div class="screen-header">'+
+      '<div class="eyebrow" style="font-size:12px">'+esc(q.level)+'</div>'+
+      '<h2>'+esc(q.q)+'</h2>'+
+      '<div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
+      '<div class="progress-meta"><span>Progrés</span><span>'+num+'/'+total+'</span></div>'+
+    '</div>'+
+    '<div class="options">'+optsHtml+'</div>'+
+    '<div class="screen-footer">'+fbHtml+nxHtml+'</div>'+
+  '</div>';
+
+  document.querySelectorAll("[data-i]").forEach(el=>{
+    el.onclick=()=>{
+      if(S.correct===true)return;
+      const i=parseInt(el.getAttribute("data-i"));
+      S.picked=i;S.correct=i===QUESTIONS[S.qIdx].answer;render();
+    };
+  });
+  const nb=document.getElementById("nextQ");
+  if(nb) nb.onclick=()=>{
+    S.picked=null;S.correct=null;
+    if(S.qIdx<QUESTIONS.length-1){S.qIdx++;go("question");}
+    else go("success");
+  };
+}
+
+// ─── SUCCESS ───
+function vSuccess(){
+  fireConfetti();
+  $app.innerHTML='<div class="screen" style="text-align:center">'+
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center">'+
+      '<div class="success-icon">✓</div>'+
+      '<div class="eyebrow mt-md" style="color:var(--success)">Mission Complete</div>'+
+      '<h1>Package <span class="em-success">unlocked</span></h1>'+
+      '<p class="subtitle" style="max-width:320px">Totes les proves superades. El paquet secret està llest.</p>'+
+      '<div class="stats" style="max-width:300px;margin:16px auto 0;grid-template-columns:1fr 1fr">'+
+        '<div class="stat"><div class="stat-label">Proves</div><div class="stat-value em-success">3 / 3</div></div>'+
+        '<div class="stat"><div class="stat-label">Identitat</div><div class="stat-value em-success">Verificada</div></div>'+
+        '<div class="stat"><div class="stat-label">Clearance</div><div class="stat-value em-success">Nivell 7</div></div>'+
+        '<div class="stat"><div class="stat-label">Paquet</div><div class="stat-value em-success">Actiu ·</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="screen-footer">'+
+      '<button class="btn btn-gold" id="seeReward" style="width:100%">Veure recompensa</button>'+
+    '</div>'+
+  '</div>';
+  document.getElementById("seeReward").onclick=()=>go("reward");
+}
+
+// ─── REWARD ───
+function vReward(){
+  const today=new Date().toLocaleDateString("ca-ES");
+  $app.innerHTML='<div class="screen" id="rewardScreen" style="padding:16px 16px max(12px, env(safe-area-inset-bottom))">'+
+    '<div class="screen-header">'+
+      '<div class="eyebrow gold">Reward Dossier</div>'+
+      '<h2>Cupó <span class="em-gold">desbloquejat</span></h2>'+
+      '<div style="font-family:var(--mono);font-size:11px;color:var(--gold);margin-top:8px">Agent autoritzat: <span style="font-family:var(--heading);font-weight:900">'+esc(AGENT_NAME)+'</span></div>'+
+    '</div>'+
+    '<div class="coupon">'+
+      '<div class="card-header" style="border-color:rgba(240,192,64,0.12)"><span>Secret Reward Pass</span><span>'+today+'</span></div>'+
+      /* Golden image */
+      '<div style="position:relative;z-index:1;width:100%;aspect-ratio:9/16;max-height:50vh;overflow:hidden">'+
+        '<img src="pav golden.jpg" style="width:100%;height:calc(100% + 6px);object-fit:cover;object-position:center top;transform:translateY(-6px)" onerror="this.onerror=null;this.src=\'pav golden.png\'">'+
+        '<div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(20,15,5,0.95) 0%,rgba(20,15,5,0.3) 40%,transparent 70%)"></div>'+
+      '</div>'+
+      '<div class="card-body" style="position:relative;z-index:4;margin-top:-80px">'+
+        '<div class="reward-box">'+
+          '<div class="field-label">Recompensa</div>'+
+          '<div class="reward-title">Val per anar a triar un regal amb els tiets</div>'+
+        '</div>'+
+        '<div class="stats">'+
+          '<div class="stat"><div class="stat-label">Location</div><div class="stat-value">JD Sports</div></div>'+
+          '<div class="stat"><div class="stat-label">Estat</div><div class="stat-value em-gold">Per reclamar</div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    /* Hidden restart zone top-right */
+    '<div id="restartZone" style="position:fixed;top:0;right:0;width:60px;height:60px;z-index:50;cursor:default"></div>'+
+    '<div class="screen-footer" style="padding-top:10px;padding-bottom:max(8px, env(safe-area-inset-bottom))">'+
+      '<button class="btn btn-gold" id="printBtn">Imprimir</button>'+
+    '</div>'+
+  '</div>';
+  document.getElementById("printBtn").onclick=()=>window.print();
+  const rewardScreen=document.getElementById("rewardScreen");
+  if(rewardScreen){
+    rewardScreen.addEventListener("click",()=>{ fireConfetti(); });
+    rewardScreen.addEventListener("touchstart",()=>{ fireConfetti(); },{passive:true});
+  }
+  let tapCount=0,tapTimer=null;
+  document.getElementById("restartZone").onclick=()=>{
+    tapCount++;
+    if(tapCount>=3){tapCount=0;clearTimeout(tapTimer);restart();}
+    else{clearTimeout(tapTimer);tapTimer=setTimeout(()=>{tapCount=0;},1000);}
+  };
+}
+
+function restart(){
+  S.screen="boot";S.progress=0;S.qIdx=0;S.picked=null;S.correct=null;
+  startBoot();
+}
+
+startBoot();
+</script>
+</body>
+</html>
