@@ -200,8 +200,8 @@
     }
     .flip-hint {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 22px;
+      right: 22px;
       z-index: 3;
       width: 42px;
       height: 42px;
@@ -321,7 +321,7 @@
       pointer-events: none;
       z-index: 0;
       opacity: 1;
-      background: radial-gradient(circle at center, rgba(0,229,255,0.09) 0 12%, transparent 13%);
+      background: radial-gradient(circle at center, rgba(0,229,255,0.09) 0 18%, transparent 19%);
     }
     .scan-focus-bg::before,
     .scan-focus-bg::after {
@@ -958,7 +958,7 @@ function vScan(){
         '<h2 style="margin-top:0;font-size:clamp(22px,6vw,32px)">Verificació <span class="em">d\'accés</span></h2>'+
       '</div>'+
       /* Sensor — centered and bigger */
-      '<div id="scanSensor" class="sensor-area scan-reveal" style="position:relative;margin-top:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:112px">'+
+      '<div id="scanSensor" class="sensor-area scan-reveal" style="position:relative;margin-top:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:64px">'+
         '<div id="scanAccessChip" class="scan-status-chip" style="position:relative;z-index:2;margin:0 auto 28px">Accés bloquejat</div>'+
         '<div class="sensor-wrap scan-sensor-intro" style="width:236px;height:236px;z-index:2">'+
           '<div class="scan-focus-bg" aria-hidden="true"></div>'+
@@ -1136,7 +1136,7 @@ function vAgent(){
     return '<div style="flex:0 0 auto;min-width:106px;background:'+k.bg+';border:1px solid rgba(0,229,255,0.1);border-radius:14px;padding:14px 16px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:8px">'+
       '<div style="color:'+k.clr+'">'+k.icon+'</div>'+
       '<div style="font-family:var(--heading);font-size:22px;font-weight:900;color:'+k.clr+'">'+k.val+'</div>'+
-      '<div style="font-family:var(--mono);font-size:8px;color:rgba(0,229,255,0.5);text-transform:uppercase;letter-spacing:0.5px">'+k.label+'</div>'+
+      '<div style="font-family:var(--mono);font-size:8px;color:'+k.clr+';text-transform:uppercase;letter-spacing:0.5px;opacity:0.85">'+k.label+'</div>'+
     '</div>';
   }
 
@@ -1442,8 +1442,8 @@ function vReward(){
           '<div class="reward-title">Val per anar a triar un regal amb els tiets</div>'+
         '</div>'+
         '<div class="stats">'+
-          '<div class="stat"><div class="stat-label">Location</div><div class="stat-value">JD Sports</div></div>'+
-          '<div class="stat"><div class="stat-label">Estat</div><div class="stat-value em-gold">Per reclamar</div></div>'+
+          '<div class="stat" id="locationStat" style="cursor:pointer"><div class="stat-label">Location</div><div class="stat-value">JD Sports</div></div>'+
+          '<div class="stat" id="claimStat" style="cursor:pointer"><div class="stat-label">Estat</div><div class="stat-value em-gold">Per reclamar</div></div>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -1454,6 +1454,18 @@ function vReward(){
     '</div>'+
   '</div>';
   document.getElementById("printBtn").onclick=()=>window.print();
+  const locationStat=document.getElementById("locationStat");
+  if(locationStat){
+    locationStat.onclick=()=>{
+      window.open("https://www.jdsports.es/?utm_source=google&utm_medium=cpc&utm_campaign=es_brand_bm_%28LOW%29&gad_source=1&gad_campaignid=9724995787&gbraid=0AAAAAqnhh_o8eqxcC_2HkL-q1gOSzIpPP&gclid=CjwKCAjw1tLOBhAMEiwAiPkRHmC2n3YCHyUeJTjYZauAgwxTG6cYmHQDIKMjX9qVwaclmdhdkHUY2hoCTrMQAvD_BwE", "_blank", "noopener,noreferrer");
+    };
+  }
+  const claimStat=document.getElementById("claimStat");
+  if(claimStat){
+    claimStat.onclick=()=>{
+      window.location.href="mailto:katanga73@gmail.com?subject=Reclamar%20recompensa%20Pavito_2000&body=Hola%2C%20vull%20reclamar%20la%20recompensa.";
+    };
+  }
   const rewardScreen=document.getElementById("rewardScreen");
   if(rewardScreen){
     rewardScreen.addEventListener("click",()=>{ fireConfetti(); });
